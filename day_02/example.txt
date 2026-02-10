@@ -1,0 +1,1 @@
+This is the data written through sync func:'writeFileSync'This is the data written throygh sync function:'appendFileSync'

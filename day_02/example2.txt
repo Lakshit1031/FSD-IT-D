@@ -1,0 +1,1 @@
+This is the data written through async func:'writeFile()'This is the data appended through async function

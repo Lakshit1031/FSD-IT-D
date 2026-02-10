@@ -1,0 +1,1 @@
+This is data wriiten by async function:'writeFile()'appended data
