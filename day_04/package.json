@@ -2,20 +2,15 @@
   "name": "day_04",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "main": "index.js",
+  "type":"module",
   "scripts": {
-    "start": "node index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "nodejs",
-    "fs",
-    "file-handling"
-  ],
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "fs": "^0.0.1-security"
-  },
-  "devDependencies": {}
+  }
 }
