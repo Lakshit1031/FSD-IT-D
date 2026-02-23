@@ -1,4 +1,27 @@
-import { readFile, writeFile } from "./readAndWrite.js";
+import { readFile, writeFile } from "./ReadandWrite.js";
+
+const updateFile = async(id,data,path) => {
+    const fileData = await readFile(path);
+    const updatedData = fileData.map((d) =>
+        d.id === id ? {...d,...data} : d);
+    const response = await writeFile(path, JSON.stringify(updatedData));
+    console.log(response.status);
+}
+updateFile(1,{name:"E"}, "./students.json");
+
+
+//     let updatedData = JSON.parse(fileData);
+//     updatedData = updatedData.map(item => {
+//         if(item.id === id) {
+//             return {...item,...data}
+//         }
+//         return item;
+//     })
+//     const response = await writeFile(path, JSON.stringify(updatedData));
+//     console.log(response.status);
+// }
+
+
 
 const fileData = async (path) => {
     try {
