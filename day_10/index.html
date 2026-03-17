@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Management</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0c0f0a; --panel: #141710; --border: #2a2e24;
+      --accent: #b5e550; --danger: #ff6b6b;
+      --text: #e8ecdf; --muted: #7a8068; --input-bg: #1a1e15;
+      --radius: 14px;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 40px 24px 60px; gap: 28px;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 20% 0%,  rgba(181,229,80,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 100%, rgba(122,184,0,.05)  0%, transparent 60%);
+    }
+    @keyframes rise {
+      from { opacity:0; transform:translateY(18px); }
+      to   { opacity:1; transform:translateY(0);    }
+    }
+
+    .page-header { text-align:center; animation: rise .5s ease both; }
+    .page-header h1 { font-family:'DM Serif Display',serif; font-size:2.2rem; letter-spacing:-.02em; }
+    .page-header h1 em { font-style:italic; color:var(--accent); }
+    .page-header p  { color:var(--muted); font-size:.9rem; margin-top:6px; }
+
+    .tabs {
+      display:flex; gap:6px;
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:99px; padding:5px;
+      animation: rise .5s .05s ease both;
+    }
+    .tab-btn {
+      padding:8px 18px; border:none; background:transparent;
+      color:var(--muted); font-family:'DM Sans',sans-serif;
+      font-size:.84rem; font-weight:500; border-radius:99px;
+      cursor:pointer; transition:background .2s, color .2s; white-space:nowrap;
+    }
+    .tab-btn.active       { background:var(--accent); color:#0c0f0a; }
+    .tab-btn.danger.active{ background:var(--danger);  color:#fff; }
+
+    .card {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:24px; width:100%; max-width:460px;
+      padding:44px 44px 40px; position:relative; overflow:hidden;
+      box-shadow:0 40px 80px rgba(0,0,0,.5);
+      display:none;
+    }
+    .card.visible { display:block; animation: rise .35s ease both; }
+    .card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg,transparent,var(--accent),transparent); opacity:.6;
+    }
+    .card.danger-card::before { background:linear-gradient(90deg,transparent,var(--danger),transparent); }
+
+    .card-icon {
+      width:44px; height:44px; border-radius:12px;
+      display:grid; place-items:center; font-size:22px; margin-bottom:24px;
+    }
+    .card-icon.green { background:var(--accent); }
+    .card-icon.blue  { background:#4dabf7; }
+    .card-icon.red   { background:var(--danger); }
+
+    h2 { font-family:'DM Serif Display',serif; font-size:1.75rem; line-height:1.1; letter-spacing:-.02em; margin-bottom:4px; }
+    h2 em { font-style:italic; color:var(--accent); }
+    .subtitle { font-size:.875rem; color:var(--muted); margin-bottom:30px; }
+
+    .field { margin-bottom:16px; }
+    label { display:block; font-size:.76rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+    .input-wrap { position:relative; }
+    .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; pointer-events:none; }
+    input {
+      width:100%; background:var(--input-bg); border:1.5px solid var(--border);
+      border-radius:var(--radius); color:var(--text);
+      font-family:'DM Sans',sans-serif; font-size:.95rem;
+      padding:12px 16px 12px 42px; outline:none;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    input::placeholder { color:var(--muted); }
+    input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(181,229,80,.12); }
+    .danger-card input:focus { border-color:var(--danger); box-shadow:0 0 0 3px rgba(255,107,107,.12); }
+
+    .strength-bar  { height:3px; background:var(--border); border-radius:99px; margin-top:8px; overflow:hidden; }
+    .strength-fill { height:100%; border-radius:99px; width:0%; transition:width .3s,background .3s; }
+    .strength-text { font-size:.72rem; color:var(--muted); margin-top:4px; min-height:16px; }
+
+    .btn {
+      width:100%; margin-top:8px; padding:14px;
+      font-family:'DM Sans',sans-serif; font-size:.95rem; font-weight:600;
+      border:none; border-radius:var(--radius); cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      transition:background .2s,transform .1s,box-shadow .2s;
+    }
+    .btn:active   { transform:scale(.98); }
+    .btn:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+    .btn-primary  { background:var(--accent); color:#0c0f0a; }
+    .btn-primary:hover { background:#c8f060; box-shadow:0 8px 24px rgba(181,229,80,.25); }
+    .btn-danger   { background:var(--danger); color:#fff; }
+    .btn-danger:hover  { background:#ff8787; box-shadow:0 8px 24px rgba(255,107,107,.3); }
+    .btn-ghost { background:var(--input-bg); color:var(--text); border:1px solid var(--border); }
+    .btn-ghost:hover { background:var(--border); }
+    .spinner { width:18px; height:18px; border:2px solid rgba(0,0,0,.15); border-top-color:inherit; border-radius:50%; animation:spin .7s linear infinite; display:none; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .btn.loading .spinner { display:block; }
+    .btn.loading .btn-text { display:none; }
+
+    .toast { margin-top:16px; padding:12px 16px; border-radius:var(--radius); font-size:.875rem; display:none; align-items:flex-start; gap:10px; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(-6px);} to{opacity:1;transform:translateY(0);} }
+    .toast.error   { display:flex; background:rgba(255,107,107,.1); border:1px solid rgba(255,107,107,.3); color:var(--danger); animation:toastIn .3s ease both; }
+    .toast.success { display:flex; background:rgba(181,229,80,.1);  border:1px solid rgba(181,229,80,.3);  color:var(--accent); animation:toastIn .3s ease both; }
+
+    .warning-box {
+      background:rgba(255,107,107,.08); border:1px solid rgba(255,107,107,.25);
+      border-radius:var(--radius); padding:12px 14px;
+      font-size:.84rem; color:var(--danger);
+      margin-bottom:20px; display:flex; gap:10px; align-items:flex-start;
+    }
+
+    .confirm-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px);
+      display:none; place-items:center; z-index:100; padding:24px;
+    }
+    .confirm-overlay.show { display:grid; }
+    .confirm-box {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:20px; padding:36px 32px 28px;
+      max-width:380px; width:100%; text-align:center;
+      animation:rise .3s ease both;
+    }
+    .confirm-box .big-icon { font-size:40px; margin-bottom:16px; }
+    .confirm-box h3 { font-family:'DM Serif Display',serif; font-size:1.4rem; margin-bottom:8px; }
+    .confirm-box p  { color:var(--muted); font-size:.875rem; margin-bottom:24px; }
+    .confirm-box p strong { color:var(--danger); }
+    .confirm-actions { display:flex; gap:10px; }
+    .confirm-actions .btn { margin-top:0; }
+
+    .user-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--input-bg); border:1px solid var(--border);
+      border-radius:99px; padding:6px 14px; font-size:.85rem; margin-top:16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>User <em>Management</em></h1>
+    <p>Registration &nbsp;·&nbsp; Password Change &nbsp;·&nbsp; Account Deletion</p>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('register',this)">📝 Register</button>
+    <button class="tab-btn"        onclick="switchTab('password',this)">🔑 Change Password</button>
+    <button class="tab-btn danger" onclick="switchTab('delete',this)"  >🗑️ Delete Account</button>
+  </nav>
+
+  <div class="card visible" id="tab-register">
+    <div class="card-icon green">🌿</div>
+    <h2>Create your <em>account</em></h2>
+    <p class="subtitle">Join us — it takes less than a minute.</p>
+
+    <div id="registerForm">
+      <div class="field">
+        <label>Full Name</label>
+        <div class="input-wrap">
+          <span class="input-icon">👤</span>
+          <input id="reg-name" type="text" placeholder="Jane Doe" autocomplete="name" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input id="reg-email" type="email" placeholder="jane@example.com" autocomplete="email" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input id="reg-password" type="password" placeholder="Min. 6 characters"
+                 oninput="strengthMeter(this,'reg-sf','reg-st')" />
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="reg-sf"></div></div>
+        <div class="strength-text" id="reg-st"></div>
+      </div>
+      <button class="btn btn-primary" id="reg-btn" onclick="register()">
+        <span class="btn-text">Create Account →</span>
+        <div class="spinner"></div>
+      </button>
+      <div class="toast" id="reg-toast"></div>
+    </div>
+
+    <div id="registerSuccess" style="display:none;text-align:center;padding:16px 0;animation:rise .4s ease both;">
+      <div style="font-size:48px;margin-bottom:16px;">✅</div>
+      <h2 style="margin-bottom:6px;">You're <em>in!</em></h2>
+      <p style="color:var(--muted);font-size:.9rem;">Account created successfully.</p>
+      <div class="user-badge" id="reg-badge"></div>
+      <br><br>
+      <button class="btn btn-primary" onclick="resetRegister()" style="max-width:200px;margin:0 auto;">
+        <span class="btn-text">Register Another</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card" id="tab-password">
+    <div class="card-icon blue">🔑</div>
+    <h2>Change your <em>password</em></h2>
+    <p class="subtitle">Verify with your current password, then set a new one.</p>
+
+    <div class="field">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉️</span>
+        <input id="cp-email" type="email" placeholder="jane@example.com" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Current Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input id="cp-current" type="password" placeholder="Your current password" />
+      </div>
+    </div>
+    <div class="field">
+      <label>New Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔓</span>
+        <input id="cp-new" type="password" placeholder="Min. 6 characters"
+               oninput="strengthMeter(this,'cp-sf','cp-st')" />
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="cp-sf"></div></div>
+      <div class="strength-text" id="cp-st"></div>
+    </div>
+    <button class="btn btn-primary" id="cp-btn" onclick="changePassword()">
+      <span class="btn-text">Update Password →</span>
+      <div class="spinner"></div>
+    </button>
+    <div class="toast" id="cp-toast"></div>
+  </div>
+
+  <div class="card danger-card" id="tab-delete">
+    <div class="card-icon red">🗑️</div>
+    <h2>Delete your <em style="color:var(--danger)">account</em></h2>
+    <p class="subtitle">Permanent and irreversible. Proceed with care.</p>
+
+    <div class="warning-box">
+      ⚠️&nbsp;<span>All your data will be permanently erased. This action cannot be undone.</span>
+    </div>
+
+    <div class="field">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉️</span>
+        <input id="del-email" type="email" placeholder="jane@example.com" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Password (confirm identity)</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input id="del-password" type="password" placeholder="Enter your password" />
+      </div>
+    </div>
+    <button class="btn btn-danger" id="del-btn" onclick="confirmDelete()">
+      <span class="btn-text">Delete My Account →</span>
+      <div class="spinner"></div>
+    </button>
+    <div class="toast" id="del-toast"></div>
+  </div>
+
+  <!-- ══ Confirm Dialog ═══════════════════════════════════════════ -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <div class="big-icon">⚠️</div>
+      <h3>Are you sure?</h3>
+      <p>This will permanently delete the account for<br>
+         <strong id="confirmEmail">—</strong>.<br>There is no going back.</p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" onclick="closeConfirm()">
+          <span class="btn-text">Cancel</span>
+        </button>
+        <button class="btn btn-danger" id="confirm-yes-btn" onclick="doDelete()">
+          <span class="btn-text">Yes, Delete</span>
+          <div class="spinner"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function switchTab(name, el) {
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('visible'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('visible');
+    el.classList.add('active');
+  }
+
+  function strengthMeter(input, fillId, textId) {
+    const val = input.value;
+    const fill = document.getElementById(fillId);
+    const text = document.getElementById(textId);
+    if (!val) { fill.style.width='0%'; text.textContent=''; return; }
+    let s = 0;
+    if (val.length>=6)  s++;
+    if (val.length>=10) s++;
+    if (/[A-Z]/.test(val)) s++;
+    if (/[0-9]/.test(val)) s++;
+    if (/[^A-Za-z0-9]/.test(val)) s++;
+    const L=[
+      {w:'20%',bg:'#ff6b6b',l:'Very weak'},
+      {w:'40%',bg:'#ffa94d',l:'Weak'},
+      {w:'60%',bg:'#ffe066',l:'Fair'},
+      {w:'80%',bg:'#b5e550',l:'Strong'},
+      {w:'100%',bg:'#69db7c',l:'Very strong'},
+    ];
+    const lv = L[Math.max(0,s-1)];
+    fill.style.width=lv.w; fill.style.background=lv.bg;
+    text.style.color=lv.bg; text.textContent=lv.l;
+  }
+
+  function showToast(id, msg, type) {
+    const t = document.getElementById(id);
+    t.className = `toast ${type}`;
+    t.innerHTML = `<span>${type==='error'?'⚠️':'✅'}</span><span>${msg}</span>`;
+    t.style.display='flex';
+    t.style.animation='none'; t.offsetHeight; t.style.animation='';
+  }
+
+  function setLoading(id, on) {
+    const b = document.getElementById(id);
+    b.disabled = on;
+    on ? b.classList.add('loading') : b.classList.remove('loading');
+  }
+
+  async function register() {
+    const name     = document.getElementById('reg-name').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!name||!email||!password) return showToast('reg-toast','Please fill in all fields.','error');
+    setLoading('reg-btn',true);
+    try {
+      const r = await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password})});
+      const d = await r.json();
+      if (d.success) {
+        document.getElementById('registerForm').style.display='none';
+        document.getElementById('registerSuccess').style.display='block';
+        document.getElementById('reg-badge').innerHTML=`👤 <strong>${d.user.name}</strong> · ${d.user.email}`;
+      } else { showToast('reg-toast',d.message,'error'); }
+    } catch { showToast('reg-toast','Network error — is the server running?','error'); }
+    finally  { setLoading('reg-btn',false); }
+  }
+
+  function resetRegister() {
+    ['reg-name','reg-email','reg-password'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('reg-sf').style.width='0%';
+    document.getElementById('reg-st').textContent='';
+    document.getElementById('reg-toast').style.display='none';
+    document.getElementById('registerSuccess').style.display='none';
+    document.getElementById('registerForm').style.display='block';
+  }
+
+  async function changePassword() {
+    const email           = document.getElementById('cp-email').value.trim();
+    const currentPassword = document.getElementById('cp-current').value;
+    const newPassword     = document.getElementById('cp-new').value;
+    if (!email||!currentPassword||!newPassword) return showToast('cp-toast','Please fill in all fields.','error');
+    setLoading('cp-btn',true);
+    try {
+      const r = await fetch('/api/change-password',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,currentPassword,newPassword})});
+      const d = await r.json();
+      showToast('cp-toast',d.message,d.success?'success':'error');
+      if (d.success) {
+        ['cp-email','cp-current','cp-new'].forEach(id=>document.getElementById(id).value='');
+        document.getElementById('cp-sf').style.width='0%';
+        document.getElementById('cp-st').textContent='';
+      }
+    } catch { showToast('cp-toast','Network error — is the server running?','error'); }
+    finally  { setLoading('cp-btn',false); }
+  }
+
+  function confirmDelete() {
+    const email    = document.getElementById('del-email').value.trim();
+    const password = document.getElementById('del-password').value;
+    if (!email||!password) return showToast('del-toast','Please fill in email and password.','error');
+    document.getElementById('confirmEmail').textContent = email;
+    document.getElementById('confirmOverlay').classList.add('show');
+  }
+
+  function closeConfirm() {
+    document.getElementById('confirmOverlay').classList.remove('show');
+  }
+
+  async function doDelete() {
+    const email    = document.getElementById('del-email').value.trim();
+    const password = document.getElementById('del-password').value;
+    closeConfirm();
+    setLoading('del-btn',true);
+    try {
+      const r = await fetch('/api/delete-user',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+      const d = await r.json();
+      showToast('del-toast',d.message,d.success?'success':'error');
+      if (d.success) { ['del-email','del-password'].forEach(id=>document.getElementById(id).value=''); }
+    } catch { showToast('del-toast','Network error — is the server running?','error'); }
+    finally  { setLoading('del-btn',false); }
+  }
+
+  document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+    if (e.target===this) closeConfirm();
+  });
+</script>
+</body>
+</html>

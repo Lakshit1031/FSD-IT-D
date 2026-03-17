@@ -6,8 +6,6 @@ const crypto = require("crypto");
 const PORT = 3000;
 const DB_FILE = path.join(__dirname, "users.json");
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
 function loadUsers() {
   if (!fs.existsSync(DB_FILE)) return [];
   try {
@@ -46,7 +44,7 @@ function sendJSON(res, statusCode, data) {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Content-Length": Buffer.byteLength(payload),
   });
   res.end(payload);
@@ -64,8 +62,6 @@ function sendFile(res, filePath, contentType) {
   });
 }
 
-// ─── Validation ─────────────────────────────────────────────────────────────
-
 function validate({ name, email, password }) {
   if (!name || name.trim().length < 2)
     return "Name must be at least 2 characters.";
@@ -75,8 +71,6 @@ function validate({ name, email, password }) {
     return "Password must be at least 6 characters.";
   return null;
 }
-
-// ─── Routes ─────────────────────────────────────────────────────────────────
 
 function handleRegister(req, res) {
   parseBody(req)
@@ -116,6 +110,68 @@ function handleRegister(req, res) {
     );
 }
 
+
+function handleChangePassword(req, res) {
+  parseBody(req)
+    .then(({ email, currentPassword, newPassword }) => {
+      if (!email || !currentPassword || !newPassword)
+        return sendJSON(res, 400, { success: false, message: "email, currentPassword and newPassword are required." });
+
+      if (newPassword.length < 6)
+        return sendJSON(res, 400, { success: false, message: "New password must be at least 6 characters." });
+
+      if (currentPassword === newPassword)
+        return sendJSON(res, 400, { success: false, message: "New password must differ from the current password." });
+
+      const users = loadUsers();
+      const idx = users.findIndex((u) => u.email.toLowerCase() === email.toLowerCase());
+
+      if (idx === -1)
+        return sendJSON(res, 404, { success: false, message: "No account found with that email." });
+
+      if (users[idx].password !== hashPassword(currentPassword))
+        return sendJSON(res, 401, { success: false, message: "Current password is incorrect." });
+
+      users[idx].password = hashPassword(newPassword);
+      users[idx].updatedAt = new Date().toISOString();
+      saveUsers(users);
+
+      sendJSON(res, 200, {
+        success: true,
+        message: "Password updated successfully.",
+        user: { id: users[idx].id, name: users[idx].name, email: users[idx].email },
+      });
+    })
+    .catch(() => sendJSON(res, 400, { success: false, message: "Invalid request body." }));
+}
+
+function handleDeleteUser(req, res) {
+  parseBody(req)
+    .then(({ email, password }) => {
+      if (!email || !password)
+        return sendJSON(res, 400, { success: false, message: "email and password are required." });
+
+      const users = loadUsers();
+      const idx = users.findIndex((u) => u.email.toLowerCase() === email.toLowerCase());
+
+      if (idx === -1)
+        return sendJSON(res, 404, { success: false, message: "No account found with that email." });
+
+      if (users[idx].password !== hashPassword(password))
+        return sendJSON(res, 401, { success: false, message: "Password is incorrect." });
+
+      const [deleted] = users.splice(idx, 1);
+      saveUsers(users);
+
+      sendJSON(res, 200, {
+        success: true,
+        message: `Account for "${deleted.name}" has been permanently deleted.`,
+        deletedUser: { id: deleted.id, name: deleted.name, email: deleted.email },
+      });
+    })
+    .catch(() => sendJSON(res, 400, { success: false, message: "Invalid request body." }));
+}
+
 function handleGetUsers(req, res) {
   const users = loadUsers().map(({ id, name, email, createdAt }) => ({
     id,
@@ -126,8 +182,6 @@ function handleGetUsers(req, res) {
   sendJSON(res, 200, { success: true, count: users.length, users });
 }
 
-// ─── Server ─────────────────────────────────────────────────────────────────
-
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const method = req.method.toUpperCase();
@@ -137,7 +191,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     });
     return res.end();
   }
@@ -158,11 +212,19 @@ const server = http.createServer((req, res) => {
   if (url.pathname === "/api/users" && method === "GET")
     return handleGetUsers(req, res);
 
+  if (url.pathname === "/api/change-password" && method === "PUT")
+    return handleChangePassword(req, res);
+
+  if (url.pathname === "/api/delete-user" && method === "DELETE")
+    return handleDeleteUser(req, res);
+
   sendJSON(res, 404, { success: false, message: "Route not found." });
 });
 
 server.listen(PORT, () => {
   console.log(`\n✅  Server running at http://localhost:${PORT}`);
   console.log(`📋  Registered users: GET  http://localhost:${PORT}/api/users`);
-  console.log(`📝  Register new user: POST http://localhost:${PORT}/api/register\n`);
+  console.log(`📝  Register user:      POST   http://localhost:${PORT}/api/register`);
+  console.log(`🔑  Change password:    PUT    http://localhost:${PORT}/api/change-password`);
+  console.log(`🗑️   Delete user:        DELETE http://localhost:${PORT}/api/delete-user\n`);
 });
