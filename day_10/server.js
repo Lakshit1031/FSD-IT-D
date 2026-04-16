@@ -1,168 +1,32 @@
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
-
-const PORT = 3000;
-const DB_FILE = path.join(__dirname, "users.json");
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function loadUsers() {
-  if (!fs.existsSync(DB_FILE)) return [];
-  try {
-    return JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
-  } catch {
-    return [];
-  }
-}
-
-function saveUsers(users) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(users, null, 2), "utf-8");
-}
-
-function hashPassword(password) {
-  return crypto.createHash("sha256").update(password).digest("hex");
-}
-
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        reject(new Error("Invalid JSON"));
-      }
-    });
-    req.on("error", reject);
-  });
-}
-
-function sendJSON(res, statusCode, data) {
-  const payload = JSON.stringify(data);
-  res.writeHead(statusCode, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Content-Length": Buffer.byteLength(payload),
-  });
-  res.end(payload);
-}
-
-function sendFile(res, filePath, contentType) {
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404);
-      res.end("Not found");
-      return;
+import express from 'express';
+import { userLogin } from './login.js';
+import { readFile } from './readAndWrite.js';
+import { changePassword } from './changePassword.js';
+const app = express();
+app.use(express.json());
+app.post("/login", async (req, res) => {
+    try {
+        const response = await userLogin(req.body, "./users.json");
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(500).json({ error: error });
     }
-    res.writeHead(200, { "Content-Type": contentType });
-    res.end(data);
-  });
-}
-
-// ─── Validation ─────────────────────────────────────────────────────────────
-
-function validate({ name, email, password }) {
-  if (!name || name.trim().length < 2)
-    return "Name must be at least 2 characters.";
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    return "Please enter a valid email address.";
-  if (!password || password.length < 6)
-    return "Password must be at least 6 characters.";
-  return null;
-}
-
-// ─── Routes ─────────────────────────────────────────────────────────────────
-
-function handleRegister(req, res) {
-  parseBody(req)
-    .then(({ name, email, password }) => {
-      const error = validate({ name, email, password });
-      if (error) return sendJSON(res, 400, { success: false, message: error });
-
-      const users = loadUsers();
-      const exists = users.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase()
-      );
-      if (exists)
-        return sendJSON(res, 409, {
-          success: false,
-          message: "Email is already registered.",
-        });
-
-      const newUser = {
-        id: crypto.randomUUID(),
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-        password: hashPassword(password),
-        createdAt: new Date().toISOString(),
-      };
-
-      users.push(newUser);
-      saveUsers(users);
-
-      sendJSON(res, 201, {
-        success: true,
-        message: "Registration successful! Welcome aboard.",
-        user: { id: newUser.id, name: newUser.name, email: newUser.email },
-      });
-    })
-    .catch(() =>
-      sendJSON(res, 400, { success: false, message: "Invalid request body." })
-    );
-}
-
-function handleGetUsers(req, res) {
-  const users = loadUsers().map(({ id, name, email, createdAt }) => ({
-    id,
-    name,
-    email,
-    createdAt,
-  }));
-  sendJSON(res, 200, { success: true, count: users.length, users });
-}
-
-// ─── Server ─────────────────────────────────────────────────────────────────
-
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://localhost:${PORT}`);
-  const method = req.method.toUpperCase();
-
-  // CORS preflight
-  if (method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    });
-    return res.end();
-  }
-
-  // Serve frontend
-  if (method === "GET" && url.pathname === "/") {
-    return sendFile(
-      res,
-      path.join(__dirname, "index.html"),
-      "text/html"
-    );
-  }
-
-  // API routes
-  if (url.pathname === "/api/register" && method === "POST")
-    return handleRegister(req, res);
-
-  if (url.pathname === "/api/users" && method === "GET")
-    return handleGetUsers(req, res);
-
-  sendJSON(res, 404, { success: false, message: "Route not found." });
 });
-
-server.listen(PORT, () => {
-  console.log(`\n✅  Server running at http://localhost:${PORT}`);
-  console.log(`📋  Registered users: GET  http://localhost:${PORT}/api/users`);
-  console.log(`📝  Register new user: POST http://localhost:${PORT}/api/register\n`);
+app.get("/users", async (req, res) => {
+    try {
+        const users = await readFile("./users.json");
+        res.status(200).json({ users: users });
+    } catch (error) {
+        res.status(500).json({ error: error });
+    }
 });
+app.post("/change-password", async (req,res) => {
+    try {
+        const response = await changePassword(req.body, "./users.json");
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(500).json({ error: error });
+    }
+});
+app.listen(5500,
+    () => console.log(`server is running at http://localhost:5500`));

@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "./readAndWrite.js";
-const FILE = "./users.json";
+// const FILE = "./users.json";
 
-export const userLogin = async (data) => {
+export const userLogin = async (data,FILE) => {
     const { email, password } = data;
     const usersData = await readFile(FILE);
     let message = "";

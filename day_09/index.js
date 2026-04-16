@@ -8,16 +8,12 @@ app.use(express.json());
 app.post("/register", async (req, res) => {
     try {
         console.log(req.body);
-        const res = await userRegistration(FILE, req.body);
-        res.send(res.message);
+        const response = await userRegistration(FILE, req.body);
+        res.status(200).json({message: response.message});
     } catch (error) {
-        res.send("unsuccessfull")
+        console.log(error);    
+        res.status(200).json({message: error});
     }
-})
-
-app.get("/", (req, res) => {
-    console.log(req);
-    res.send("Home Page");
 })
 
 app.listen(PORT, () =>

@@ -1,25 +1,14 @@
-import { readFile, writeFile } from "./ReadandWrite.js";
+import { readFile, writeFile } from "./readAndWrite.js";
 
-const updateFile = async(id,data,path) => {
+const updateFile = async (id, data, path) => {
     const fileData = await readFile(path);
-    const updatedData = fileData.map((d) =>
-        d.id === id ? {...d,...data} : d);
-    const response = await writeFile(path, JSON.stringify(updatedData));
+    if(!fileData) return;
+    const updatedData =
+        fileData.map((d) => d.id === id ? { ...d, ...data } : d);
+    const response = await writeFile(path, JSON.stringify(updatedData,null,2));
     console.log(response.status);
 }
-updateFile(1,{name:"E"}, "./students.json");
-
-
-//     let updatedData = JSON.parse(fileData);
-//     updatedData = updatedData.map(item => {
-//         if(item.id === id) {
-//             return {...item,...data}
-//         }
-//         return item;
-//     })
-//     const response = await writeFile(path, JSON.stringify(updatedData));
-//     console.log(response.status);
-// }
+updateFile(1, { section: "D",branch:"IT" }, "./students.json");
 
 
 
@@ -37,12 +26,12 @@ const writeData = async (path, data) => {
     const fileData = await readFile(path);
     let updatedData = [];
     if (!fileData) {
-        updatedData = [{id:1,...data}]
+        updatedData = [{ id: 1, ...data }]
     } else {
         let oldData = JSON.parse(fileData);
-        updatedData = [...oldData, {id:oldData.length +1 ,...data}]
+        updatedData = [...oldData, { id: oldData.length + 1, ...data }]
     };
     const response = await writeFile(path, JSON.stringify(updatedData));
     console.log(response.status);
 }
-writeData("./students.json", {name: "B" });
+// writeData("./students.json", {name: "B" });

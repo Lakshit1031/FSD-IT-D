@@ -1,6 +1,6 @@
-import { readFile } from "../utils/readfile.js";
-import { writeFile } from "../utils/writefile.js";
-const register = async (users, userDetails) => {
+import { readFile } from "../utils/readFile.js";
+import { writeFile } from "../utils/writeFile.js";
+const register = async (FILE,users, userDetails) => {
     const updatedUsers = [...users, { id: users.length + 1, ...userDetails }];
     const resposnse = await writeFile(FILE, updatedUsers);
     console.log(resposnse.message);
@@ -22,7 +22,7 @@ export const userRegistration = async (FILE, userDetails) => {
             console.log("Already Registered. Please try to login");
             return;
         }
-        register(users, userDetails);
+        register(FILE,users, userDetails);
         return { message: "successful", status: 200 };
     } catch (error) {
         return { message: "unsuccessful", status: 500 };
